@@ -85,3 +85,35 @@ LAB_00401732:
   goto LAB_00401634;
 }
 ```
+Đáng chú ý ở đoạn:
+```c
+      if (userinput == 1) {
+        ret_id = input_player();
+        id = (long)ret_id;
+        printf("User created! ID: %d\n",id);
+      }
+```
+```c
+long input_player(void)
+
+{
+  long id;
+  
+  printf("Input user \'s id:");
+  __isoc99_scanf(&DAT_0040205c,&id);
+  printf("Input user \'s name:");
+  read(0,users + id * 80,80);
+  return id;
+}
+```
+Đây là nơi có lỗ hổng OOB + overwrite địa chỉ libc' functions 
+
+
+
+
+
+
+
+
+
+
