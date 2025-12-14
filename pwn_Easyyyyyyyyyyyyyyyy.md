@@ -178,13 +178,13 @@ Chọn mục tiêu để overwrite với win() address:
       Và từ đây ta overwrite lên 
   * Vì sao cần `id = -2`?
     * Để có thể overwrite `exit@` tại `0x404078`, ta phải xuất phát ở đâu trước địa của nó. Tính khoảng cách từ `<user>` lùi xuống `<exit@>`:
-      ```
+      ```c
       # offset = <users> - <exit@>
       pwndbg> p/d 0x4040e0 - 0x404078
       $3 = 104      
       ```
       Mà, như ta đã nói: `read(0,users + id * 80,80);` lùi `id * 80` bytes trước <user>, nên ta lấy giá trị dư ra:
-      ```
+      ```c
       <exit@> = <users> - 104
                        (-1) * 80 = -80 (chưa đủ với)
                        (-2) * 80 = -160 (dư ra 56 bytes)
