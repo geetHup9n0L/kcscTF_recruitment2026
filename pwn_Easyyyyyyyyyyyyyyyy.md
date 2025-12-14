@@ -4,7 +4,9 @@
 Nguồn tham khảo chính (của JHT): 
 https://www.youtube.com/watch?v=ogTRLJ3kiIk
 
+___
 ## Cách giải:
+___
 ### Thông tin:
 Challenge cung cấp file: 
 ```
@@ -94,6 +96,7 @@ void win(void)
   return;
 }
 ```
+___
 ### Khai thác:
 Đáng chú ý trong main() ở đoạn:
 ```c
