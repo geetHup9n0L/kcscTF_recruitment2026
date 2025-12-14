@@ -85,7 +85,17 @@ LAB_00401732:
   goto LAB_00401634;
 }
 ```
-Đáng chú ý ở đoạn:
+Hàm win() ko liên kết trong main()
+```
+void win(void)
+
+{
+  system("/bin/sh");
+  return;
+}
+```
+
+Đáng chú ý trong main() ở đoạn:
 ```c
       if (userinput == 1) {
         ret_id = input_player();
@@ -107,6 +117,11 @@ long input_player(void)
 }
 ```
 Đây là nơi có lỗ hổng OOB + overwrite địa chỉ libc' functions 
+* `__isoc99_scanf(&DAT_0040205c,&id);` với datatype `long id` cho phép nhận ID giá trị âm
+* `read(0,users + id * 80,80);` :
+  * trong đây `users` là biến global, có phân vùng cụ thể cố định
+  * **chức năng:** tạo một vùng nhớ `id * 80` bytes, đọc `80 bytes` từ user
+  * việc ta cấp `id < 0`, truy cập ngược lại bộ nhớ trước địa chỉ user trong memory, từ đấy overwrite các địa chỉ ở đó
 
 
 
