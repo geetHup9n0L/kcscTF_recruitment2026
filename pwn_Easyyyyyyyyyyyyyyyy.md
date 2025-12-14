@@ -1,12 +1,12 @@
-### Lược qua:
-Challenge cho phép tận dụng lỗ hổng OOB (Out-of-bound) để write vào memory, cụ thể là vào các chức năng libc từ GOT để thực thi chức năng cụ thể khác.
+## Lược qua:
+**Challenge cho phép tận dụng lỗ hổng OOB (Out-of-bound) để write vào memory, cụ thể là vào các chức năng libc từ GOT để thực thi chức năng cụ thể khác.**
 
 Nguồn tham khảo chính (của JHT): 
-
 https://www.youtube.com/watch?v=ogTRLJ3kiIk
 
-### Cách giải:
-Challenge cho file: 
+## Cách giải:
+### Thông tin:
+Challenge cung cấp file: 
 ```
 easy.rar
 ```
@@ -16,17 +16,17 @@ Giải nén file với `unrar` và kiểm tra thông tin cơ bản:
 └─$ file vuln
 vuln: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=3d38ee665e85336ce7d15bfbb8179ac70377fd82, for GNU/Linux 3.2.0, not stripped
 ```
-* binary chạy 64-bit
-* dynamically linked: sử dụng shared libc tại runtime
-* not stripped: dễ đọc functions hơn khi disassemble binary
+* binary chạy **64-bit**
+* **dynamically linked**: sử dụng shared libc tại runtime
+* **not stripped**: dễ đọc functions hơn khi disassemble binary
 ```c
 └─$ checksec --file=vuln
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      Symbols   FORTIFY  Fortified       Fortifiable     FILE
 Partial RELRO   No canary found   NX enabled    No PIE          No RPATH   No RUNPATH   57 Symbols  No     0               5               vuln                                               
 ```
-* NO pie: các địa chỉ cố định
-* NO canary: có thể BOF
-* Partial RELRO: có thể write vào GOT table
+* `NO pie`: các địa chỉ cố định
+* `NO canary`: có thể BOF
+* `Partial RELRO`: có thể write vào GOT table
 
 Chạy binary:
 
@@ -85,7 +85,7 @@ LAB_00401732:
   goto LAB_00401634;
 }
 ```
-Hàm win() ko liên kết trong main()
+Hàm win(), ko được gọi trong main():
 ```c
 void win(void)
 
@@ -94,7 +94,7 @@ void win(void)
   return;
 }
 ```
-
+### Khai thác:
 Đáng chú ý trong main() ở đoạn:
 ```c
 ...
@@ -118,7 +118,7 @@ long input_player(void)
   return id;
 }
 ```
-Đây là nơi có lỗ hổng OOB + overwrite địa chỉ libc' functions 
+Đây là nơi có lỗ hổng OOB + overwrite địa chỉ libc' functions:
 * `__isoc99_scanf(&DAT_0040205c,&id);` với datatype `long id` cho phép nhận ID giá trị âm
 * `read(0,users + id * 80,80);` :
   * trong đây `users` là biến global, có phân vùng cụ thể cố định
@@ -186,7 +186,7 @@ Chọn mục tiêu để overwrite với win() address:
       ```
   * Vậy nên từ chỗ `<users> - 160` hay `<system@>`, ta viêt đè (padding) đến khi đạt tới `exit@` thì thay giá trị `win()` vào.
 
-  * NHƯNG, overwrite `<system@>` sẽ crash, nên ta overwrite nhưng giữ nguyên giá trị
+  * NHƯNG, overwrite `<system@>` sẽ crash, nên ta overwrite nhưng vẫn giữ nguyên giá trị
  
 Script:
 ```python
