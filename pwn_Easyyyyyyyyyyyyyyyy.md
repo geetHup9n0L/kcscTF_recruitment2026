@@ -149,7 +149,7 @@ Chọn mục tiêu để overwrite với win() address:
 * Tiếp cận option 1 - input_user():
   <img width="799" height="290" alt="image" src="https://github.com/user-attachments/assets/ca79ec73-ef7c-4003-89ff-c566bd807cd3" />
 
-* Crash binary để dbg (segfault): (sử dụng value id < 0 và payload "A" * 9 giải thích ở đoạn sau)
+* Crash binary để dbg (segfault): (sử dụng value `id < 0` và payload `"A" * 9` - giải thích ở đoạn sau)
   <img width="806" height="690" alt="image" src="https://github.com/user-attachments/assets/4e60b75a-4f34-4184-a470-8f719d0b4760" />
 
 * Kiểm tra libc function với `got`:
@@ -169,7 +169,7 @@ Chọn mục tiêu để overwrite với win() address:
 
   * Ta thấy payload "AAAAAAAAA" viết đè lên GOT tại `<system@>` (0x404040)
   * Vì sao? 
-    * Khi dùng `read(0,users + id * 80,80);` với `id = -1, -2, ...`, ta truy cập (hay phân vùng bộ nhớ) tại `id * 80` bytes phía dưới địa chỉ từ `0x4040e0 <users>:` (hoặc phía trên của <user> theo sơ đồ trên gdb)
+    * Khi dùng `read(0,users + id * 80,80);` với `id = -1, -2, ...`, ta truy cập (hay phân vùng bộ nhớ) tại `id * 80` bytes phía dưới địa chỉ từ `0x4040e0 <users>:` (hoặc phía trên của `<user>` theo sơ đồ trên gdb)
     * Nên khi cho `id = -2`, ta tịnh tiến xuống `(-2) * 80 = - 160` bytes, cũng chính là offset giữa `<system@>` và `<user>`:
       ```c
       pwndbg> p/d 0x4040e0 - 0x404040
@@ -177,7 +177,7 @@ Chọn mục tiêu để overwrite với win() address:
       ```
       Và từ đây ta overwrite lên 
   * Vì sao cần `id = -2`?
-    * Để có thể overwrite `exit@` tại `0x404078`, ta phải xuất phát ở đâu trước địa của nó. Tính khoảng cách từ `<user>` lùi xuống `<exit@>`:
+    * Để có thể overwrite `exit@` tại `0x404078`, ta phải xuất phát ở đâu trước địa chỉ của nó. Tính khoảng cách từ `<user>` lùi xuống `<exit@>`:
       ```c
       # offset = <users> - <exit@>
       pwndbg> p/d 0x4040e0 - 0x404078
