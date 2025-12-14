@@ -160,7 +160,7 @@ Chọn mục tiêu để overwrite với win() address:
   <img width="757" height="440" alt="image" src="https://github.com/user-attachments/assets/be16b95e-2af3-4889-b1c7-b73a1da87a3d" />
   <img width="757" height="440" alt="image" src="https://github.com/user-attachments/assets/0f9cff4a-013e-487c-ac15-4f2d86c0743f" />
   
-  * Từ bảng got trên, ta thấy libc functions: `exit@` (1) và `_scanf@` (2) cùng nằm trên địa chỉ `0x404070` 
+  * Từ bảng `got` trên, ta thấy libc functions: `_scanf@` (1) và `exit@` (2) cùng nằm trên địa chỉ `0x404070` 
 
 * Lùi lại xa nữa trong memory:
   
