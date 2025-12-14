@@ -12,14 +12,14 @@ easy.rar
 ```
 
 Giải nén file với `unrar` và kiểm tra thông tin cơ bản:
-```bash
+```c
 └─$ file vuln
 vuln: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=3d38ee665e85336ce7d15bfbb8179ac70377fd82, for GNU/Linux 3.2.0, not stripped
 ```
 * binary chạy 64-bit
 * dynamically linked: sử dụng shared libc tại runtime
 * not stripped: dễ đọc functions hơn khi disassemble binary
-```bash
+```c
 └─$ checksec --file=vuln
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      Symbols   FORTIFY  Fortified       Fortifiable     FILE
 Partial RELRO   No canary found   NX enabled    No PIE          No RPATH   No RUNPATH   57 Symbols  No     0               5               vuln                                               
