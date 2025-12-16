@@ -166,8 +166,8 @@ Trong shellcode này:
 * Còn lại là open, read, write file flag.txt để retrieve flag
 
 Cách là thế, nhưng script ban đầu khi không có `sub rsp, 0x100`, chỉ chạy được local mà server thì không:
-* trong shellcode, ta đấy value syscall lên, sau đấy flag lên ngay cạnh nó trên stack
-* lúc này, r12 đang trỏ vào value syscall (0f 05 c3), sau đấy ta đấy `null` (8 bytes) + flag.txt (8 bytes), và giờ `rsp` = r12 - 16 
+* trong shellcode, ta đấy value syscall lên, sau đó đấy flag lên ngay cạnh nó trên stack
+* lúc này, r12 đang trỏ vào value `syscall` (0f 05 c3), sau đấy ta đấy `null` (8 bytes) + flag.txt (8 bytes), và giờ `rsp` = r12 - 16 
   ```asm
   STACK
   _____________
@@ -177,9 +177,9 @@ Cách là thế, nhưng script ban đầu khi không có `sub rsp, 0x100`, chỉ
   | ...       | 
   ...
   ```
-* đến đoạn **read file to memory**, ta chạy `read(fd, buffer=rsp, count=100).`, tức là đọc 100 bytes từ flag.txt vào memory bắt đầu từ `rsp`
-* giá trị trong flag.txt sẽ được đọc vào memory từ rsp tràn xuống dưới sao cho đủ 16 bytes (0-15), nhưng từ byte 16 trở đi là sẽ overwrite r12 (syscall)
-* lý do, chạy local ra được flag, là vì flag.txt của local rất bé (< 16 bytes), không tràn đến giá trị syscall trên stack. Trong khi flag.txt của server lớn hơn nhiều nên overwrite syscall trên stack.
+* đến đoạn **read file to memory**, ta chạy `read(fd, buffer=rsp, count=100).`, tức là đọc 100 bytes từ flag.txt vào memory, bắt đầu từ `rsp`
+* giá trị trong **flag.txt** sẽ được đọc vào memory, từ `rsp` tràn xuống dưới sao cho đủ 16 bytes (0-15), nhưng từ **byte 16** trở đi là sẽ overwrite r12 (syscall)
+* lý do chạy local ra được flag, là vì flag.txt của local rất bé (< 16 bytes), không tràn đến giá trị syscall trên stack. Trong khi flag.txt của server lớn hơn nhiều nên overwrite syscall trên stack.
 ```c
 └─$ cat flag.txt 
 KCSC{test}   
@@ -194,9 +194,11 @@ sub rsp, 0x100
 CTF{THIS_IS_A_VERY_LONG_FLAG_THAT_WILL_CRASH_YOUR_STACK}
 ```
 Local:
+
 <img width="800" height="319" alt="image" src="https://github.com/user-attachments/assets/9377e5be-81df-4b2f-ae79-7ea1192a47a3" />
 
 Server:
+
 <img width="803" height="315" alt="image" src="https://github.com/user-attachments/assets/5861d862-512c-4edd-8475-c8329ed61b72" />
 
 Nhận ra điều này khi chạy trên Docker cũng vẫn ra flag.txt: `KCSC{test}`, nhưng chạy server thì không. Nên suy ra lỗi không nằm ở các thanh ghi, mà khả năng value syscall bị corrupted
