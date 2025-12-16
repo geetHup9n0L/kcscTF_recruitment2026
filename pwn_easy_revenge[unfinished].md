@@ -167,7 +167,7 @@ ulong input_player(void)
 
 **Notes**: Phần giải thích đây khá là lộn xộn, sẽ tối ưu khi hiểu sâu về vấn đề này hơn
 ___
-**TL;DR**
+### **TL;DR**
 
 Lấy `id` lớn nhất, và nó sẽ thành số âm, `read()` sẽ truy cập ngược lại các địa chỉ GOT và overwrite với `win()` 
 
@@ -180,7 +180,7 @@ if (id < 230584300921369395) {
 ```
 **TH1**: có max `id` = 230584300921369394
 * tính offset ở dạng signed long `id * 80`
-  ```
+  ```c
   unsigned 64-bit:
   = 230584300921369394 × 80 = 18,446,744,073,709,551,520
   HEX:
@@ -191,22 +191,22 @@ if (id < 230584300921369395) {
 Nhưng:
 
 Như lần trước, lấy mục tiêu là địa chỉ `exit@` để overwrite với `win()`, tính offset:
-```
+```c
 └─$ nm test | grep users
 00000000004036a0 B users
 ```
-```
+```c
 └─$ readelf -r test | grep exit 
 000000403630  001000000007 R_X86_64_JUMP_SLO 0000000000000000 exit@GLIBC_2.2.5 + 0
 ```
-```
+```c
 offset = 0x4036a0 - 0x403630 = 0x70 = 112
 ```
 `exit@` cách `user` = -112 bytes ==> TH1 loại.
 
 **TH2**: có max `id` = 230584300921369393
 * tính offset ở dạng signed long `id * 80`
-  ```
+  ```c
   unsigned 64-bit:
   = 230584300921369393 × 80 = 18446744073709551440
   HEX:
@@ -216,16 +216,28 @@ offset = 0x4036a0 - 0x403630 = 0x70 = 112
   ```
 ==> dư ra 64 bytes để tiến đến `exit@`
 
-payload của ta sẽ xuất phát từ địa chỉ `<user> - 176` = `0x4035f0`, tiến lên địa chỉ `exit@` và overwrite
+Vì vậy, payload của ta sẽ xuất phát từ địa chỉ `<user> - 176` = `0x4035f0`, tiến lên địa chỉ `exit@` và overwrite
 
 Bởi vì `NO PIE`, sẽ giữ giá trị GOT khác trong payload, tránh corrupted và crash
 
 <img width="669" height="115" alt="image" src="https://github.com/user-attachments/assets/44f09530-abe3-4d72-8394-5d58ca4dccc1" />
 
+```asm
+0x4035f0 <setbuf@got.plt>:      0x0000000000401080      0x0000000000401090
+0x403600 <printf@got.plt>:      0x00000000004010a0      0x00000000004010b0
+0x403610 <read@got.plt>:        0x00000000004010c0      0x00000000004010d0
+0x403620 <perror@got.plt>:      0x00000000004010e0      0x00000000004010f0
+0x403630 <exit@got.plt>:        0x0000000000401100      0x0000000000000000
+```
+
 Và đây là biễu diễn memory khi chương trình bị crash:
 
 <img width="808" height="776" alt="image" src="https://github.com/user-attachments/assets/713ff3f5-f4c0-4b6b-9a40-c88fa4eff5be" />
 
+<!!!>
+Hiện tại đang bị gặp lỗi nên đang trong quá trình tìm lỗi:
+
+<img width="701" height="688" alt="image" src="https://github.com/user-attachments/assets/981d5ed2-983a-42ac-a1bd-a222ee203d47" />
 
 
 
