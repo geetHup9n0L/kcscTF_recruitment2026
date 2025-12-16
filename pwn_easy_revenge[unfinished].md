@@ -149,6 +149,15 @@ ulong input_player(void)
     mod 2^64
     = 0xFFFFFFFFFFFFFFF0
     ```
+  * Biểu diễn nhị phân:
+    ```
+    <1>1111111 11111111 11111111 11111111 11111111 11111111 11111111 11110000
+    =========================================================================
+    unsigned long:
+      9223372036854775808 + ... +  ... = 18446744073709551600
+    signed long:
+      -9223372036854775808 + ... + ... = -16
+    ```
   * `id * 80` nếu là uint long thì mang giá trị rất lơn như trên.
   * Nhưng trong trường hợp trên, `users + id * 80`, nó đóng vai trò là 1 offset, pointer arithmetic, thì nó sẽ được đưa về kiểu dữ liệu `signed 64-bit`, tương đương:
     ```
@@ -159,6 +168,7 @@ ulong input_player(void)
 **Notes**: Phần giải thích đây khá là lộn xộn, sẽ tối ưu khi hiểu sâu về vấn đề này hơn
 ___
 **TL;DR**
+
 Lấy `id` lớn nhất, và nó sẽ thành số âm, `read()` sẽ truy cập ngược lại các địa chỉ GOT và overwrite với `win()` 
 
 ```c
@@ -168,9 +178,53 @@ if (id < 230584300921369395) {
     }
 ...
 ```
-* `id` = 230584300921369394
-* `id * 80` = 
+**TH1**: có max `id` = 230584300921369394
+* tính offset ở dạng signed long `id * 80`
+  ```
+  unsigned 64-bit:
+  = 230584300921369394 × 80 = 18,446,744,073,709,551,520
+  HEX:
+  = 0xFFFFFFFFFFFFFFA0
+  signed 64-bit:
+  = −96
+  ```
+Nhưng:
 
+Như lần trước, lấy mục tiêu là địa chỉ `exit@` để overwrite với `win()`, tính offset:
+```
+└─$ nm test | grep users
+00000000004036a0 B users
+```
+```
+└─$ readelf -r test | grep exit 
+000000403630  001000000007 R_X86_64_JUMP_SLO 0000000000000000 exit@GLIBC_2.2.5 + 0
+```
+```
+offset = 0x4036a0 - 0x403630 = 0x70 = 112
+```
+`exit@` cách `user` = -112 bytes ==> TH1 loại.
+
+**TH2**: có max `id` = 230584300921369393
+* tính offset ở dạng signed long `id * 80`
+  ```
+  unsigned 64-bit:
+  = 230584300921369393 × 80 = 18446744073709551440
+  HEX:
+  = 0xFFFFFFFFFFFFFF50
+  signed 64-bit:
+  = −176
+  ```
+==> dư ra 64 bytes để tiến đến `exit@`
+
+payload của ta sẽ xuất phát từ địa chỉ `<user> - 176` = `0x4035f0`, tiến lên địa chỉ `exit@` và overwrite
+
+Bởi vì `NO PIE`, sẽ giữ giá trị GOT khác trong payload, tránh corrupted và crash
+
+<img width="669" height="115" alt="image" src="https://github.com/user-attachments/assets/44f09530-abe3-4d72-8394-5d58ca4dccc1" />
+
+Và đây là biễu diễn memory khi chương trình bị crash:
+
+<img width="808" height="776" alt="image" src="https://github.com/user-attachments/assets/713ff3f5-f4c0-4b6b-9a40-c88fa4eff5be" />
 
 
 
