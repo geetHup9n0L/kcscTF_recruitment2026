@@ -1,6 +1,7 @@
 ## Lược qua:
-Bài này là nâng cao của [`"Easyyyyyyyyyyyyyyyy"`](https://github.com/geetHup9n0L/kcscTF_recruitment2026/blob/main/pwn_Easyyyyyyyyyyyyyyyy.md), 
-vẫn tận dụng lỗ hổng OOB (Out-of-bound) để write vào địa chỉ các chức năng libc trên memory, bên cạnh đó sẽ là lỗ hổng Interger Overflow (tràn số nguyên có dấu). 
+
+**Bài này là nâng cao của [`Easyyyyyyyyyyyyyyyy`](https://github.com/geetHup9n0L/kcscTF_recruitment2026/blob/main/pwn_Easyyyyyyyyyyyyyyyy.md), 
+vẫn tận dụng lỗ hổng OOB (Out-of-bound) để write vào địa chỉ các chức năng libc trên memory, bên cạnh đó sẽ là lỗ hổng Interger Overflow (tràn số nguyên có dấu).**
 
 
 ___
