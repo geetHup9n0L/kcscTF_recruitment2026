@@ -12,12 +12,12 @@ Tên binary là:
 ranacy
 ```
 Kiểm tra thông tin file:
-```
+```python
 └─$ file ranacy 
 ranacy: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=9e97f9713e799c491a7a9083e39302a13b4a6842, for GNU/Linux 3.2.0, not stripped
 ```
 * binary `64-bit` và `dynamically linked`
-```
+```python
 └─$ checksec --file=ranacy 
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      Symbols   FORTIFY  Fortified       Fortifiable     FILE
 Partial RELRO   Canary found      NX enabled    No PIE          No RPATH   No RUNPATH   46 Symbols  No     0               3               ranacy
@@ -49,14 +49,14 @@ void vuln(void)
   long in_FS_OFFSET;
   int choice;
   int attempts;
-  undefined1 input_buffer [264];
+  undefined1 input_buffer [264];    ///////////////
   long canary_check;
   
   canary_check = *(long *)(in_FS_OFFSET + 0x28);
   set_up(input_buffer);
   attempts = 0;
   do {
-    if (4 < attempts) {
+    if (4 < attempts) {      //////////////
 code_r0x004013a4:
       if (canary_check != *(long *)(in_FS_OFFSET + 0x28)) {
                     /* WARNING: Subroutine does not return */
@@ -68,10 +68,10 @@ code_r0x004013a4:
     FUN_00401100(&DAT_00402043,&choice);
     if (choice == 1) {
       printf("Please enter some data:\n> ");
-      read(0,input_buffer,288);
+      read(0,input_buffer,288);    ////////////////
     }
     else if (choice == 2) {
-      printf("Starting data observation...\nData: %s\n",input_buffer);
+      printf("Starting data observation...\nData: %s\n",input_buffer);  ///////////
     }
     else {
       if (choice == 3) {
@@ -84,21 +84,26 @@ code_r0x004013a4:
   } while( true );
 }
 ```
-Chức năng đáng chú ý:
+**Chức năng đáng chú ý:**
 * Khả năng **BOF**, khi mà `read()` đọc nhiều hơn so với size `input_buffer[]`:
-  ```
+  ```c
   input_buffer [264];
   ...
   read(0,input_buffer,288);
   ```
 * Chỉ có `5` lần tương tác binary:
-  ```
+  ```c
   if (4 < attempts) {
       ...
       return;
   }
   ```
 * Lựa chọn `2` in ra `input_buffer`: dùng để leak data
+  ```c
+  else if (choice == 2) {
+      printf("Starting data observation...\nData: %s\n",input_buffer);
+  }
+  ```
 
 ___
 ### Khai thác:
