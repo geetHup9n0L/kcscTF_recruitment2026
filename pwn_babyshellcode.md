@@ -1,5 +1,5 @@
 ## Lược qua:
-Challenge đọc shellcode từ input người dùng, lọc và thực thi nó, binary sẽ thoát nếu shellcode bao gồm các syscall instructions (lời gọi hệ thống)
+**Challenge đọc shellcode từ input người dùng, lọc và thực thi nó, binary sẽ thoát nếu shellcode bao gồm các syscall instructions (lời gọi hệ thống)**
 
 
 ___
