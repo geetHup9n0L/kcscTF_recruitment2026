@@ -84,6 +84,7 @@ void win(void)
   return;
 }
 ```
+___
 ### Khai thác:
 **Thay đổi trong code đáng chú ý nằm ở hàm `input_user()`**:
 ```c
@@ -92,15 +93,15 @@ ulong input_player(void)
 {
   int iVar1;
   long in_FS_OFFSET;
-  ulong id;
+  ulong id;            //////////////////
   long local_10;
   
   local_10 = *(long *)(in_FS_OFFSET + 0x28);
   printf("Input user \'s id:");
   iVar1 = __isoc99_scanf(&DAT_00402060,&id);
   if (iVar1 == 1) {
-    if (id < 230584300921369395) {
-      printf("Input user \'s name:");
+    if (id < 230584300921369395) {      //////////////////////
+      printf("Input user \'s name:");   
       read(0,users + id * 80,80);
     }
     else {
