@@ -117,15 +117,16 @@ overflow = 288 - 264 = 24 bytes
 low address
 |--------------|
 | input_buffer | 264 bytes  <== rsp 
-| ...          |
+| [0]...[263]  |
 | canary       | 8 bytes   }
 | saved rbp    | 8 bytes   } => 24 bytes
 | return       | 8 bytes   }
 | ...          |
 high address
 ```
-Phạm vi để BOF là `canary`, `saved_rbp`, `ret` (24 bytes). Rất hẹp để thực hiện việc tạo shell, nên phải áp dụng **Stack pivot** để chuyển đến nơi có đủ vùng nhớ cho shell
+Phạm vi để BOF là bao gồm cả `canary`, `saved_rbp`, `ret` (24 bytes). Rất hẹp để thực hiện việc tạo shell, nên phải áp dụng **Stack pivot** để chuyển đến nơi có đủ vùng nhớ cho shell
 
+Và phải khai thác trong 5 lần tương tác binary
 
 
 
