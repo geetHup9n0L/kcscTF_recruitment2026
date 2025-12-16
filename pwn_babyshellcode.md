@@ -83,10 +83,9 @@ Từ disassembly code, ta chú ý:
 * `mproc = mprotect(shellcode,0x1000,5);`: là quyền truy cập RWE cho vị trí shellcode
   * `shellcode`: vị trí trên memory
   * `0x1000`: là kích thước vùng lữu trữ (= 4096)
-  * `prot = 5`: (= 1 + 4) = PROT_READ | PROT_EXEC - là tại vùng nhớ shellcode, có thể readale and executable
+  * `prot = 5`: (= 1 + 4) = PROT_READ | PROT_EXEC - là tại vùng nhớ shellcode, có thể readable and executable
 
 Trong vòng while loop:
-* `(*shellcode)();`: chương trình sẽ thực thi shellcode
 * `if (((char == 0x50f) || (char == 0x340f)) || (char == -0x7f33)) break;`:
   Kiếm tra xem trong payload có sử dụng syscall instructions:
   
@@ -97,7 +96,8 @@ Trong vòng while loop:
     | `-0x7f33` | `0x80cd` | `cd 80`    | `int 0x80` |
 
   binary 64-bit là dùng `syscall`
-
+* Nếu đáp ứng thì:
+   `(*shellcode)();`: chương trình sẽ thực thi shellcode
 ___
 ### Khai thác:
 
