@@ -26,6 +26,7 @@ Full RELRO      Canary found      NX disabled   PIE enabled     No RPATH   No RU
 * `NX disabled`: có thể thực thị shellcode trên stack
 
 Chạy binary:
+
 <img width="810" height="84" alt="image" src="https://github.com/user-attachments/assets/040b1bf2-f9f1-4463-b046-5214ac760cc1" />
 
 Function đáng chú ý chỉ có main() 
@@ -86,12 +87,34 @@ Từ disassembly code, ta chú ý:
 
 Trong vòng while loop:
 * `(*shellcode)();`: chương trình sẽ thực thi shellcode
-* Kiếm tra xem trong payload có sử dụng syscall instructions
-  `if (((char == 0x50f) || (char == 0x340f)) || (char == -0x7f33)) break;`:
+* `if (((char == 0x50f) || (char == 0x340f)) || (char == -0x7f33)) break;`:
+  Kiếm tra xem trong payload có sử dụng syscall instructions:
+  
     | Check     | Hex      | Bytes    | Meaning    |
     | --------- | -------- | ---------- | ---------- |
     | `0x50f`   | `0x050f` | `0f 05`    | `syscall`  |
     | `0x340f`  | `0x340f` | `0f 34`    | `sysenter` |
     | `-0x7f33` | `0x80cd` | `cd 80`    | `int 0x80` |
+
+  binary 64-bit là dùng `syscall`
+
+### Khai thác:
+
+Vậy ta phải viết shellcode mà không trực tiếp sử dụng đến syscall, tránh bị binary phát hiện forbidden bytes.
+
+Bởi vì chương trình chỉ kiểm tra bytes có sẵn trong shellcode trước excecution, thay vì là thực thi tại runtime
+
+==> Vì vậy, binary không thể kiểm tra bytes trong quá trình runtime execution
+
+Có 2 cách để bypass cái syscall check này: 
+
+* gián tiếp tạo syscall bằng cách lấy giá trị `0e 05` (0x050e), increment bởi 1, ra `0f 05` (0x050f) của syscall
+
+  (hay còn gọi là Self-modifying shellcode)
+
+* tìm value `0f 05` của syscall đâu đó trong memory, ngoài phạm vì của shellcode check và tái sử dụng, call nó
+
+Ta sẽ tiếp cận với cách 1:
+
 
   
