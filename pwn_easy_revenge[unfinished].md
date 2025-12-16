@@ -125,6 +125,7 @@ ulong input_player(void)
 * một cái check mới `if (id < 230584300921369395)` với giá trị rất lớn
 
 ==> Đây là nơi diễn ra lổ hổng mới: **Integer Overflow** 
+
     Lỗ hổng này là khi biến mang giá trị lớn hơn giá trị được định ra bởi kiểu dữ liệu của nó
 
 **Đánh giá:**
@@ -133,12 +134,12 @@ ulong input_player(void)
 * `read(0,users + id * 80,80);` chức năng để overwrite vào memory, xuất phát từ global variable: `<users>`, cấp phát vùng nhớ cho mỗi `id` 80 bytes, truy cập vùng nhớ tại `users + id * 80` 
 
 * Vì sao kiểm tra `if (id < 230584300921369395)`?:
-  * `id` mang giá trị MAX = `230584300921369395`
-  * `ulong id` nhận giá trị trong khoảng:
+  * ta biết `ulong id` nhận giá trị trong khoảng:
     ```
-    Phạm vi: 0 --> 18,446,744,073,709,551,615 ( 2^64-1 ).
+    0 --> 18,446,744,073,709,551,615 ( 2^64-1 ).
     ```
-  * `id * 80` = `230584300921369395 * 80` = `18446744073709551600` xấp xỉ gần giá trị MAX của 1 unsigned long (2 ^ 64 - 1). Đây là địa chỉ xa nhất có thể cấp phát cho `id`, đảm bảo ko vượt quá 64-bit.
+  * giả sử `id` có thể mang giá trị MAX = `230584300921369395`
+  * tính `id * 80` = `230584300921369395 * 80` = `18446744073709551600` xấp xỉ gần giá trị MAX của **unsigned long**. Đây là địa chỉ xa nhất có thể cấp phát cho `id`.
 
 * Vậy lỗi nằm ở Integer Overflow trong phép nhân của `id * 80`
   * Biểu diễn qua hex:
@@ -156,12 +157,19 @@ ulong input_player(void)
   ==> OOB write khả thi
 
 **Notes**: Phần giải thích đây khá là lộn xộn, sẽ tối ưu khi hiểu sâu về vấn đề này hơn
-  
+___
+**TL;DR**
+Lấy `id` lớn nhất, và nó sẽ thành số âm, `read()` sẽ truy cập ngược lại các địa chỉ GOT và overwrite với `win()` 
 
-
-
-
-
+```c
+if (id < 230584300921369395) {      
+      printf("Input user \'s name:");   
+      read(0,users + id * 80,80);
+    }
+...
+```
+* `id` = 230584300921369394
+* `id * 80` = 
 
 
 
