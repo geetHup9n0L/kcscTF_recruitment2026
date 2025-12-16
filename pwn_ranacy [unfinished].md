@@ -107,3 +107,36 @@ code_r0x004013a4:
 
 ___
 ### Khai thác:
+
+Vậy, có lỗ hổng `BOF`, với NX và Canary đều được bật, và một vùng nhớ khá nhỏ để overflow
+```c
+overflow = 288 - 264 = 24 bytes
+```
+Ở đây, có thể hình dung Stack như sau:
+```asm
+low address
+|--------------|
+| input_buffer | 264 bytes  <== rsp 
+| ...          |
+| canary       | 8 bytes
+| saved rbp    | 8 bytes  
+| return       | 8 bytes
+| ...          |
+high address
+```
+Phạm vi để BOF là canary, saved_rbp, ret. Rất hẹp để thực hiện việc tạo shell, nên phải áp dụng **Stack pivot** để chuyển đến nơi có đủ vùng nhớ cho shell
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
