@@ -8,12 +8,15 @@ Nguồn tham khảo:
 
 * Stack pivot & SROP: https://www.youtube.com/watch?v=K4B_qVGJUFw (SloppyJoePirates)
 
+* Stack pivot & libc version leak: https://www.youtube.com/watch?v=X6QiSqrJnTA (SloppyJoePirates)
+
 ___
 ## Hướng giải
 ### Thông tin:
-Tên binary là:
-```
-ranacy
+Các file được cung cấp là:
+```c
+└─$ ls
+flag  ld-linux-x86-64.so.2  libc.so.6  ranacy
 ```
 Kiểm tra thông tin file:
 ```python
@@ -134,6 +137,7 @@ Phạm vi để BOF là bao gồm cả `canary`, `saved_rbp`, `ret` (24 bytes). 
 
 Và phải khai thác trong 5 lần tương tác binary
 
+___
 1. Leak `canary` và `saved rbp`:
 * cái canaray thường có `\x00` (null) ở byte đầu tiên (hay ở LSB), nhằm mục đích chặn `printf()` in ra value trong canary.
 
@@ -141,7 +145,7 @@ Và phải khai thác trong 5 lần tương tác binary
   ```python
   payload = b'A' * 264 + b'A' # 'A' cuối thay thế '\x00'
   ```
-==> Với cách này, có thể leak cả canary và saved rbp
+  ==> Với cách này, có thể leak cả canary và saved rbp
 
 * cần leak `old rbp` của main trong `saved rbp`, vì là địa chỉ đáng tin cậy để gián tiếp tính địa chỉ của `input_buffer` (Vì ASLR)
 
@@ -149,14 +153,18 @@ Và phải khai thác trong 5 lần tương tác binary
 
 **Trước hết, tính địa chỉ input_buffer:**
 
-* debug kiếm tra stack memory, thấy địa chỉ `old rbp` trong `rbp` và địa chỉ của `input_buffer`
+* debug kiếm tra stack memory, thấy địa chỉ `old rbp` trong `rbp` và địa chỉ của `input_buffer`:
+  
 <img width="801" height="451" alt="image" src="https://github.com/user-attachments/assets/9fa70cbe-3e70-45b7-b9fd-85c5b2118136" />
+
 * tính offset:
   ```python
   offset = 0x7ffee9330870 - 0x7ffee9330748 = 0x120
   ```
-* Có thể thấy địa chỉ thay đổi trong lần chạy khác (vì ASLR), nhưng offset giữ nguyên - đáng tin cậy
+* Có thể thấy địa chỉ thay đổi trong lần chạy khác (vì ASLR), nhưng offset giữ nguyên - đáng tin cậy:
+
 <img width="799" height="513" alt="image" src="https://github.com/user-attachments/assets/11e94622-876c-40ec-a2c1-c24366bf54ad" />
+
 * Địa chỉ input_buffer at runtime:
   ```python
   buffer_addr = leaked_rbp - 0x120
@@ -171,13 +179,12 @@ Và phải khai thác trong 5 lần tương tác binary
 [ return addr   ]  ← overwrite 
 ```
 * overwrite `saved rbp` với địa chỉ `buffer_address`
-* overwrite `return addr` với `leave; ret` gadget
-  * `rsp = rbp`: rsp trỏ tới địa chỉ `buffer_address`
-  * `pop rbp`: rbp = `buffer_address`
-  * `ret`
+* overwrite `return addr` với `leave; ret` gadget (lúc này `rip` sẽ trỏ và thực hiện gadget trên
+  * `rsp = rbp`: rsp trỏ tới `buffer_address`
+  * `pop rbp`: rbp = `[buffer_address]`
+  * `ret`: đặt rip = `[buffer_address + 8]`
 
-
-
+**Leak libc_address và xây dựng shell với ROP**:
 
 
 
