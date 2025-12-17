@@ -203,12 +203,12 @@ ___
    <img width="812" height="481" alt="image" src="https://github.com/user-attachments/assets/c8361011-a488-4262-b938-a019f525b256" />
   
   * Tính offset:
-    ```
+    ```python
     offset = 0x00007f788c794ca8 - 0x7f788c76b000
            = 0x29ca8
     ```
   * Vậy có mặc định:
-    ```
+    ```python
     libc.address = leak_libc_function - 0x29ca8
     ```
 * Xây script với ROP:
@@ -304,5 +304,6 @@ p.sendlineafter(b'> ', b'3')
 
 p.interactive()
 ```
-
+<!!!>
+Sau đoạn này thì gặp lỗi và đang tìm lỗi 
 
