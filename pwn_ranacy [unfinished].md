@@ -2,7 +2,11 @@
 
 **Challenge này cho phép ta khai thác lỗ hổng BOF (buffer overflow), leak canary trên stack và thực hiện kỹ thuật Stack pivot (chuyển hướng luồng thực thi) sang shell tự tạo**
 
-Nguồn tham khảo (của JHT): https://www.youtube.com/watch?v=-dnH913iloY
+Nguồn tham khảo: 
+
+* BOF & Stack pivot:  https://www.youtube.com/watch?v=-dnH913iloY (của JHT)
+
+* Stack pivot & SROP: https://www.youtube.com/watch?v=K4B_qVGJUFw (SloppyJoePirates)
 
 ___
 ## Hướng giải
@@ -124,15 +128,53 @@ low address
 | ...          |
 high address
 ```
-Phạm vi để BOF là bao gồm cả `canary`, `saved_rbp`, `ret` (24 bytes). Rất hẹp để thực hiện việc tạo shell, nên phải áp dụng **Stack pivot** để chuyển đến nơi có đủ vùng nhớ cho shell
+Phạm vi để BOF là bao gồm cả `canary`, `saved_rbp`, `ret` (24 bytes). Rất hẹp để thực hiện việc tạo shell, nên phải áp dụng **Stack pivot** để chuyển đến nơi có đủ vùng nhớ cho shell trên stack
+
+**Mục tiêu**: Tạo shell trong vùng nhớ `input_buffer[]`, và Stack pivot đến địa chỉ `input_buffer` trên stack 
 
 Và phải khai thác trong 5 lần tương tác binary
 
+1. Leak `canary` và `saved rbp`:
+* cái canaray thường có `\x00` (null) ở byte đầu tiên (hay ở LSB), nhằm mục đích chặn `printf()` in ra value trong canary.
 
+  bắng cách BOF và overwrite cái null byte này, printf() sẽ in ra liên tục các giá trị trên stack cho đến khi gặp `\x00`
+  ```python
+  payload = b'A' * 264 + b'A' # 'A' cuối thay thế '\x00'
+  ```
+==> Với cách này, có thể leak cả canary và saved rbp
 
+* cần leak `old rbp` của main trong `saved rbp`, vì là địa chỉ đáng tin cậy để gián tiếp tính địa chỉ của `input_buffer` (Vì ASLR)
 
+2. Tạo shell trên input_buffer và Pivot stack đến input_buffer:
 
+**Trước hết, tính địa chỉ input_buffer:**
 
+* debug kiếm tra stack memory, thấy địa chỉ `old rbp` trong `rbp` và địa chỉ của `input_buffer`
+<img width="801" height="451" alt="image" src="https://github.com/user-attachments/assets/9fa70cbe-3e70-45b7-b9fd-85c5b2118136" />
+* tính offset:
+  ```python
+  offset = 0x7ffee9330870 - 0x7ffee9330748 = 0x120
+  ```
+* Có thể thấy địa chỉ thay đổi trong lần chạy khác (vì ASLR), nhưng offset giữ nguyên - đáng tin cậy
+<img width="799" height="513" alt="image" src="https://github.com/user-attachments/assets/11e94622-876c-40ec-a2c1-c24366bf54ad" />
+* Địa chỉ input_buffer at runtime:
+  ```python
+  buffer_addr = leaked_rbp - 0x120
+  ```
+**Để thực hiện Stack Pivot:**
+
+* Hình dung stack:
+```asm
+[ buffer        ]  ← overflow xuất phát
+[ ...           ]
+[ saved rbp     ]  ← overwrite 
+[ return addr   ]  ← overwrite 
+```
+* overwrite `saved rbp` với địa chỉ `buffer_address`
+* overwrite `return addr` với `leave; ret` gadget
+  * `rsp = rbp`: rsp trỏ tới địa chỉ `buffer_address`
+  * `pop rbp`: rbp = `buffer_address`
+  * `ret`
 
 
 
