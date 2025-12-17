@@ -305,5 +305,10 @@ p.sendlineafter(b'> ', b'3')
 p.interactive()
 ```
 <!!!>
-Sau đoạn này thì gặp lỗi và đang tìm lỗi 
+Sau đoạn này thì gặp lỗi và đang tìm lỗi
+
+<img width="809" height="290" alt="image" src="https://github.com/user-attachments/assets/6c47d8ac-ea42-47bf-82a9-9c06b1469312" />
+
+<img width="812" height="206" alt="image" src="https://github.com/user-attachments/assets/86a77e76-897b-4dca-b89b-8b8657470e0b" />
+
 
