@@ -147,7 +147,7 @@ void win()
 ```
 * và hàm win() mở /flag.txt ở absolutepath
 * để tạo local flag.txt, có:
-  ```
+  ```c
   └─$ sudo sh -c 'echo "KCSC{local_testing_flag}" > /flag.txt'
   [sudo] password for kali: 
   ```
@@ -156,7 +156,7 @@ ___
 ### Khai thác
 Với hai thông tin sau:
 * cấu trúc global_state và một function pointer được khởi tạo global, và đứng sát nhau
-```
+```c
 struct GlobalState {
     char username[MAX_LEN];     // 16 bytes
     char password[MAX_LEN];     // 16 bytes
@@ -270,7 +270,7 @@ for i in range(1, 1000):
     if i % 10 == 0: print(f"Attempt {i}...", end='\r')
     if attempt(i): break
 ```
-
+Nhưng khi chạy REMOTE với server, thì bruteforce rất lâu, nếu ăn may thì trúng trong những attempt đầu
 ___
 bank.c
 ```c
