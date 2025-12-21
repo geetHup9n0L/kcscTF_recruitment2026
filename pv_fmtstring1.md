@@ -48,6 +48,7 @@ p.sendline(payload)
 
 <img width="804" height="101" alt="image" src="https://github.com/user-attachments/assets/eef33098-eb1b-4393-b09c-2f84b04700b7" />
 <img width="807" height="519" alt="image" src="https://github.com/user-attachments/assets/29ef0a16-1531-49a4-8cb8-f100c0652fae" />
+
 Thấy được là `%p` thứ 3 leak được địa chỉ buffer
 
 Note tìm hiểu được: với file 64-bit, 6 arguments đầu tiên của printf là nằm ở thanh ghi, tới argument thứ 7 là nằm trên stack
