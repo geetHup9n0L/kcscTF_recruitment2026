@@ -98,7 +98,9 @@ Kiểm tra:
 
 <img width="808" height="810" alt="image" src="https://github.com/user-attachments/assets/78f5a7f1-2198-41cb-8554-c8b8e6b5d26b" />
 
-* Tiếp đến là bước tạo shell, ta sẽ dùng one_gadget:
+* Tiếp đến là bước tạo shell, có 2 cách: one_gadget hoặc ROP:
+
+**C1: one_gadget**
 
 <img width="808" height="419" alt="image" src="https://github.com/user-attachments/assets/e440daff-286c-456b-8525-07725c47d8bb" />
 
@@ -110,8 +112,6 @@ gadget = libc.address + gadget_offset
 ta sẽ sử dụng format string `%n` để overwrite vào địa chỉ trên rip và sau nó 
 
 và overwrite từng 2 byte một vào return address qua mỗi vòng while (vì viết hết vào thì rất lớn)
-
-**C1: one_gadget**
 ```python
 i: 1 -> 3
 
