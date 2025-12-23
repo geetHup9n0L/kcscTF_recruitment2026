@@ -1,0 +1,172 @@
+```c
+void main(void)
+
+{
+  undefined8 node;
+  long in_FS_OFFSET;
+  ulong choice;
+  ulong ID;
+  ulong ID2;
+  undefined8 canary;
+  ulong tempID;
+  
+  canary = *(undefined8 *)(in_FS_OFFSET + 0x28);
+  setup();
+  memset(nodes,0,128);
+LAB_00401800:
+  menu();
+  __isoc99_scanf(&DAT_00402080,&choice);
+  if (choice == 4) {
+    exit(0);
+  }
+  else {
+    if (4 < choice) goto LAB_00401a14;
+    if (choice == 3) {
+      puts("Read from: ");
+      __isoc99_scanf(&DAT_00402080,&ID);
+      Read_Graph(ID);
+      goto LAB_00401800;
+    }
+    if (choice < 4) {
+      if (choice == 1) {
+        puts("Id: ");
+        __isoc99_scanf(&DAT_00402080,&ID);
+        tempID = ID;
+        if ((ID < 16) && (*(long *)(nodes + ID * 8) != 0)) {
+          puts("Node exists");
+        }
+        else if (ID < 16) {
+          node = Create_Node(ID);
+          *(undefined8 *)(nodes + tempID * 8) = node;
+          (**(code **)(*(long *)(nodes + ID * 8) + 32))("Created");
+        }
+        else {
+          puts("Invalid id");
+        }
+      }
+      else {
+        if (choice != 2) goto LAB_00401a14;
+        puts("Node 1: ");
+        __isoc99_scanf(&DAT_00402080,&ID);
+        puts("Node 2:");
+        __isoc99_scanf(&DAT_00402080,&ID2);
+        if (((ID < 16) && (ID2 < 16)) && (ID != ID2)) {
+          Link_Node(ID,ID2);
+        }
+        else {
+          puts("Invalid");
+        }
+      }
+      goto LAB_00401800;
+    }
+  }
+LAB_00401a14:
+  puts("Invalid choice");
+  goto LAB_00401800;
+}
+```
+```c
+void Read_Graph(long ID)
+
+{
+  size_t len;
+  long i;
+  long *index;
+  long in_FS_OFFSET;
+  int k;
+  int m;
+  ulong j;
+  long buff [16];
+  long *list [17];
+  long local_20;
+  
+  local_20 = *(long *)(in_FS_OFFSET + 0x28);
+  index = buff;
+  for (i = 16; i != 0; i = i + -1) {
+    *index = 0;
+    index = index + 1;
+  }
+  if (*(long *)(nodes + ID * 8) == 0) {
+    puts("Not created node");
+  }
+  else {
+    list[0] = *(long **)(nodes + ID * 8);
+    for (j = 1; index = list[0], j != 0; j = j - 1) {
+      printf("Node: %llu\n",*list[0]);
+      buff[*index] = 1;
+      (*(code *)index[4])("Data: ");
+      len = strlen((char *)(index + 2));
+      read(0,(void *)((long)index + len + 16),16);
+      (*(code *)index[4])("Done!");
+      for (k = 0; (ulong)(long)k < (ulong)index[1]; k = k + 1) {
+        if (buff[index[(long)k + 5]] == 0) {
+          list[j] = *(long **)(nodes + index[(long)k + 5] * 8);
+          j = j + 1;
+        }
+      }
+      for (m = 0; (ulong)(long)m < j; m = m + 1) {
+        list[m] = list[m + 1];
+      }
+    }
+    puts("Data saved");
+  }
+  if (local_20 != *(long *)(in_FS_OFFSET + 0x28)) {
+                    /* WARNING: Subroutine does not return */
+    __stack_chk_fail();
+  }
+  return;
+}
+
+
+undefined8 * Create_Node(undefined8 ID)
+
+{
+  undefined8 *buff;
+  
+  buff = (undefined8 *)malloc(168);
+  if (buff == (undefined8 *)0x0) {
+    buff = (undefined8 *)0x0;
+  }
+  else {
+    *buff = ID;
+    buff[1] = 0;
+    buff[4] = node_method;
+    memset(buff + 2,0,16);
+    memset(buff + 5,-1,128);
+  }
+  return buff;
+}
+```
+```c
+void Link_Node(long ID1,long ID2)
+
+{
+  int i;
+  long node1;
+  long node2;
+  long val;
+  
+  if ((*(long *)(nodes + ID1 * 8) == 0) || (*(long *)(nodes + ID2 * 8) == 0)) {
+    puts("Invalid");
+  }
+  else {
+    for (i = 0; (ulong)(long)i < *(ulong *)(*(long *)(nodes + ID1 * 8) + 8); i = i + 1) {
+      if (ID2 == *(long *)(*(long *)(nodes + ID1 * 8) + 8 + ((long)i + 4) * 8)) {
+        exit(0xffffffff);
+      }
+    }
+    node1 = *(long *)(nodes + ID1 * 8);
+    node2 = *(long *)(nodes + ID2 * 8);
+    val = *(long *)(node1 + 8);
+    *(long *)(node1 + 8) = val + 1;
+    *(long *)(node1 + 8 + (val + 4) * 8) = ID2;
+    val = *(long *)(node2 + 8);
+    *(long *)(node2 + 8) = val + 1;
+    *(long *)(node2 + 8 + (val + 4) * 8) = ID1;
+    (**(code **)(node1 + 32))("Done!");
+  }
+  return;
+}
+
+
+```
