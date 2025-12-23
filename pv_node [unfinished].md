@@ -1,5 +1,5 @@
 
-
+___
 ### Thông tin:
 Kiểm tra file binary:
 ```python
@@ -122,11 +122,11 @@ void Read_Graph(long ID)
       visited[*curr_node] = 1;
       (*(code *)curr_node[4])("Data: ");
       len = strlen((char *)(curr_node + 2));               //////////////////
-      read(0,(void *)((long)curr_node + len + 16),16);     //////////////////
+      read(0,(void *)((long)curr_node + len + 16),16);     //////////////////  shell
       (*(code *)curr_node[4])("Done!");                    //////////////////
       for (k = 0; (ulong)(long)k < (ulong)curr_node[1]; k = k + 1) {
         if (visited[curr_node[(long)k + 5]] == 0) {
-          queue[j] = *(long **)(nodes + curr_node[(long)k + 5] * 8);  /////////////////
+          queue[j] = *(long **)(nodes + curr_node[(long)k + 5] * 8);  /////////////////  leak
           j = j + 1;
         }
       }
@@ -148,7 +148,7 @@ void Read_Graph(long ID)
   * `curr_node` trỏ đến node hiện tại
   * `queue[]` là hàng chờ cho các node khác
   * `visited` để đánh dấu xem node được đi qua chưa
-* Hàm này là nơi khai thác lỗ hổng BOF và OOB 
+* Hàm này là nơi khai thác lỗ hổng OOB 
 ```c
 undefined8 * Create_Node(undefined8 ID)
 
@@ -171,7 +171,7 @@ undefined8 * Create_Node(undefined8 ID)
 ```
 * Ta thấy cấu trúc của 1 node trên heap:
   ```c
-  heap:
+  heap: node(168 bytes)
   | id | counter | buffer | *(func) | links |
   -------------------------------------------
   | 8  |    8    |   16   |    8    |  128  | (bytes)
@@ -179,6 +179,14 @@ undefined8 * Create_Node(undefined8 ID)
   |                       |         |
   nodes                  +32       +40
   ```
+| Offset | Field            | Size       | Notes                                      |
+|--------|------------------|------------|--------------------------------------------|
+| +0     | ID               | 8 bytes    | Node ID                                    |
+| +8     | Counter          | 8 bytes    | Number of links                            |
+| +16    | Data Buffer      | 16 bytes   | index + 2                                  |
+| +32    | Function Pointer | 8 bytes    | index[4] (node_method)                     |
+| +40    | Links Array      | 128 bytes  | Stores IDs of connected nodes              |
+
 ```c
 void Link_Node(long ID1,long ID2)
 
@@ -212,6 +220,7 @@ void Link_Node(long ID1,long ID2)
 ```
 Hàm này không đóng vai trò gì nhiều
 
+___
 ### Khai thác:
 Trong hàm `Read_Graph()`, có đoạn:
 ```c
@@ -220,7 +229,8 @@ read(0,(void *)((long)curr_node + len + 16),16);
 (*(code *)curr_node[4])("Done!"); 
 ```
 * `len` kiểm tra độ dài trong buffer tại `curr_node+2` (buffer = 16 bytes)
-* `read()` đọc 16 bytes vào vị trí `curr_node + len + 16`
+* `read()` đọc 16 bytes vào vị trí `curr_node + len + 16`,
+  
   với `len = 16` ==> `read()` viết vào vị trí `curr_node + 32` (`*(func)`)
   ```c
   heap:
@@ -233,14 +243,36 @@ read(0,(void *)((long)curr_node + len + 16),16);
   |                /           |
   curr_node   curr_node+2    curr_node[4]
   ```
-* `(*(code *)curr_node[4])` call và chạy `*(func)`
+* `(*(code *)curr_node[4])` call và chạy `*(func)`.
+  
 ==> nghĩa là `read()` cho phép ta write vào địa chỉ function pointer `*(func)`, và `*(func)` sẽ thực thi nó (với điều kiện len=16). Có thể đẩy shell lên đây.
 
+tiếp trong hàm `Read_Graph()`:
+```c
+      printf("Node: %llu\n",*queue[0]);    
+      visited[*curr_node] = 1;
+      ...
+      for (k = 0; (ulong)(long)k < (ulong)curr_node[1]; k = k + 1) {
+        if (visited[curr_node[(long)k + 5]] == 0) {
+          queue[j] = *(long **)(nodes + curr_node[(long)k + 5] * 8);  
+          j = j + 1;
+        }
+      }
+```
+* đoạn `for loops` là để duyệt các `node` lân cận chưa được thăm, rồi cho vào hàng chờ `queue[]`
+* `printf("Node: %llu\n",*queue[0]);` khả năng dùng để leak địa chỉ
 
-Tìm địa chỉ các biến global:
+Để leak libc, ta sẽ theo các bước:
+* Tạo node A, cho data đầy vào buffer (16 bytes)
+* Sử dụng OOB, giữ nguyên giá trị `node_method` trong function pointer
+* overwrite vào vùng `links` với giá trị âm (đặt ID trong mục node lân cận thành số âm)
+* với BFS, duyệt đến node có ID âm với vùng memory: `(nodes + curr_node[(long)k + 5] * 8)` (k < 0)
+===> truy nhập đến bảng GOT nằm trước biến global `nodes`
+* trong vòng `for` tiếp, `printf()` sẽ in ra địa chỉ GOT 
+
+* Tìm địa chỉ các biến global:
 
 <img width="809" height="128" alt="image" src="https://github.com/user-attachments/assets/54342016-2658-4ee1-996a-2420714b79c4" />
-
 ```c
 # function pointer <node_method>
 └─$ nm node_node_node| grep node_method               
@@ -250,6 +282,14 @@ Tìm địa chỉ các biến global:
 00000000004040c0 B nodes
 ```
 
+Tìm offset cho `id`:
+
+<img width="803" height="382" alt="image" src="https://github.com/user-attachments/assets/654164dd-f282-4459-b7b1-d99004c2055b" />
+<img width="807" height="419" alt="image" src="https://github.com/user-attachments/assets/c7189d86-0d1f-4e8f-a610-4e8726918aa3" />
+
+```c
+id = -21
+```
 
 
 
