@@ -6,14 +6,17 @@ Kiểm tra file binary:
 ┌──(kali㉿kali)-[~/CTFs/testCTF/node]
 └─$ file node_node_node 
 node_node_node: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=be8dfb6255380f87d596a9038ccfe2f3e6d37183, for GNU/Linux 3.2.0, not stripped
-                                                                                                   
+```
+* `64-bit` binary, dynamically linked
+* `not stripped`: tên hàm và biến global giữ nguyên
+```python
 ┌──(kali㉿kali)-[~/CTFs/testCTF/node]
 └─$ checksec --file=node_node_node 
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      Symbols   FORTIFY  Fortified       Fortifiable     FILE
 Partial RELRO   Canary found      NX enabled    No PIE          No RPATH   No RUNPATH   55 Symbols  No     0               3               node_node_node
 ```
-* `Partial RELRO`, có thể overwrite got
-* `No PIE` các địa chỉ là tĩnh
+* `Partial RELRO`: có thể overwrite got
+* `No PIE`: các địa chỉ là tĩnh
 
 Output binary:
 
@@ -46,7 +49,7 @@ LAB_00401800:
     if (choice == 3) {
       puts("Read from: ");
       scanf(&DAT_00402080,&ID);
-      Read_Graph(ID);
+      Read_Graph(ID);        ////////////////
       goto LAB_00401800;
     }
     if (choice < 4) {
@@ -118,12 +121,12 @@ void Read_Graph(long ID)
       printf("Node: %llu\n",*queue[0]);
       visited[*curr_node] = 1;
       (*(code *)curr_node[4])("Data: ");
-      len = strlen((char *)(curr_node + 2));
-      read(0,(void *)((long)curr_node + len + 16),16);
-      (*(code *)curr_node[4])("Done!");
+      len = strlen((char *)(curr_node + 2));               //////////////////
+      read(0,(void *)((long)curr_node + len + 16),16);     //////////////////
+      (*(code *)curr_node[4])("Done!");                    //////////////////
       for (k = 0; (ulong)(long)k < (ulong)curr_node[1]; k = k + 1) {
         if (visited[curr_node[(long)k + 5]] == 0) {
-          queue[j] = *(long **)(nodes + curr_node[(long)k + 5] * 8);
+          queue[j] = *(long **)(nodes + curr_node[(long)k + 5] * 8);  /////////////////
           j = j + 1;
         }
       }
@@ -210,3 +213,57 @@ void Link_Node(long ID1,long ID2)
 Hàm này không đóng vai trò gì nhiều
 
 ### Khai thác:
+Trong hàm `Read_Graph()`, có đoạn:
+```c
+len = strlen((char *)(curr_node + 2));               
+read(0,(void *)((long)curr_node + len + 16),16);     
+(*(code *)curr_node[4])("Done!"); 
+```
+* `len` kiểm tra độ dài trong buffer tại `curr_node+2` (buffer = 16 bytes)
+* `read()` đọc 16 bytes vào vị trí `curr_node + len + 16`
+  với `len = 16` ==> `read()` viết vào vị trí `curr_node + 32` (`*(func)`)
+  ```c
+  heap:
+  | id | counter | buffer | *(func) | links |
+  -------------------------------------------
+  | 8  |    8    |   16   |    8    |  128  | (bytes)
+  -------------------------------------------
+  |                  /    |    |    |
+  |                 /    +32   |   +40
+  |                /           |
+  curr_node   curr_node+2    curr_node[4]
+  ```
+* `(*(code *)curr_node[4])` call và chạy `*(func)`
+==> nghĩa là `read()` cho phép ta write vào địa chỉ function pointer `*(func)`, và `*(func)` sẽ thực thi nó (với điều kiện len=16). Có thể đẩy shell lên đây.
+
+
+Tìm địa chỉ các biến global:
+
+<img width="809" height="128" alt="image" src="https://github.com/user-attachments/assets/54342016-2658-4ee1-996a-2420714b79c4" />
+
+```c
+# function pointer <node_method>
+└─$ nm node_node_node| grep node_method               
+0000000000401276 T node_method
+# global variable <nodes>
+└─$ nm node_node_node| grep nodes      
+00000000004040c0 B nodes
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
