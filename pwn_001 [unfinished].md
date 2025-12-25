@@ -61,7 +61,7 @@ int main(void)
 }
 ```
 * `printf(name); ` có thể format string
-* `strncmp(passwd,backup_passwd,len);` kiểm tra pass, độ dài (len = 16)
+* `strncmp(passwd,backup_passwd,len);` kiểm tra pass, với độ dài xác định (len = 16), nó sẽ không xét từ offset 16 trở đi
 ```c
 void gen_passwd(char *backup_pass,size_t len)
 
@@ -190,3 +190,51 @@ dùng format string leak `backup_passwd` trên stack:
 <img width="802" height="175" alt="image" src="https://github.com/user-attachments/assets/f2165f02-d544-45f9-a787-b688be964854" />
 
 <img width="801" height="819" alt="image" src="https://github.com/user-attachments/assets/7f573c20-7839-443f-a6fb-9fd7170d4b2d" />
+
+và leak cả libc ở RIP:
+
+* tìm offset của format string:
+  * leak ở printf(name) nhưng sai, vì stack frame mới của hàm `write_passwd()`
+    
+<img width="799" height="426" alt="image" src="https://github.com/user-attachments/assets/6b8ac652-b192-4396-9a20-0591a911a84a" />
+```c
+%29$p
+```
+<img width="806" height="144" alt="image" src="https://github.com/user-attachments/assets/ed23eea8-9f40-48b1-9e78-2010413fa74b" />
+
+  * leak ở printf(passwd), nên phải căn lại với rbp cũ
+    
+<img width="811" height="340" alt="image" src="https://github.com/user-attachments/assets/23bbd6ef-0d23-4345-90fd-37ee6957a0a5" />
+<img width="806" height="606" alt="image" src="https://github.com/user-attachments/assets/56f18ccb-15f5-4c63-9e44-2e9fd7f43533" />
+```c
+%53$p
+```
+
+* tìm offset từ leak libc đến base
+
+<img width="803" height="406" alt="image" src="https://github.com/user-attachments/assets/b51647c0-9ac8-47d9-ae33-02913e93410a" />
+
+<img width="805" height="569" alt="image" src="https://github.com/user-attachments/assets/9e9ecd76-62cb-43fb-830a-8da08b51acfe" />
+```c
+libc.address = leak_libc - 0x29ca8
+```
+
+Kiểm tra lại:
+
+<img width="802" height="247" alt="image" src="https://github.com/user-attachments/assets/46011373-6664-495b-9589-f273ab93c888" />
+<img width="806" height="359" alt="image" src="https://github.com/user-attachments/assets/13ae89b9-5447-475a-868c-88a3b7e0d61a" />
+
+* dùng format string `%n` overwrite địa chỉ `win()` vào `RIP`:
+
+địa chỉ hàm `win()`:
+
+<img width="806" height="200" alt="image" src="https://github.com/user-attachments/assets/af769bc9-d036-4719-a9f1-30c364486f25" />
+```
+win = libc.base + 0x1329
+```
+
+
+
+
+
+
