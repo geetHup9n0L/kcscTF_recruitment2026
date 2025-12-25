@@ -206,6 +206,7 @@ và leak cả libc ở RIP:
     
 <img width="811" height="340" alt="image" src="https://github.com/user-attachments/assets/23bbd6ef-0d23-4345-90fd-37ee6957a0a5" />
 <img width="806" height="606" alt="image" src="https://github.com/user-attachments/assets/56f18ccb-15f5-4c63-9e44-2e9fd7f43533" />
+
 ```c
 %53$p
 ```
@@ -215,6 +216,7 @@ và leak cả libc ở RIP:
 <img width="803" height="406" alt="image" src="https://github.com/user-attachments/assets/b51647c0-9ac8-47d9-ae33-02913e93410a" />
 
 <img width="805" height="569" alt="image" src="https://github.com/user-attachments/assets/9e9ecd76-62cb-43fb-830a-8da08b51acfe" />
+
 ```c
 libc.address = leak_libc - 0x29ca8
 ```
