@@ -182,7 +182,7 @@ void win(void)
   return;
 }
 ```
-* hàm win() chạy shell, ta sẽ cần nhảy vào đây
+* hàm `win()` chạy shell, ta sẽ cần nhảy vào đây
 
 ### Khai thác:
 dùng format string leak `backup_passwd` trên stack:
@@ -197,9 +197,11 @@ và leak cả libc ở RIP:
   * leak ở printf(name) nhưng sai, vì stack frame mới của hàm `write_passwd()`
     
 <img width="799" height="426" alt="image" src="https://github.com/user-attachments/assets/6b8ac652-b192-4396-9a20-0591a911a84a" />
+
 ```c
 %29$p
 ```
+
 <img width="806" height="144" alt="image" src="https://github.com/user-attachments/assets/ed23eea8-9f40-48b1-9e78-2010413fa74b" />
 
   * leak ở printf(passwd), nên phải căn lại với rbp cũ
@@ -231,6 +233,7 @@ Kiểm tra lại:
 địa chỉ hàm `win()`:
 
 <img width="806" height="200" alt="image" src="https://github.com/user-attachments/assets/af769bc9-d036-4719-a9f1-30c364486f25" />
+
 ```
 win = libc.base + 0x1329
 ```
